@@ -338,13 +338,13 @@ from dept
 where deptname = 'accounts' OR deptname = 'personal'
 );
 
--- Q11  List the employees working for ‘accounts’ or ‘personal’ department
+-- Q11  List the employees working for ‘accounts’ and ‘personal’ department
  select * 
  from emp 
  where deptcode in  (
 select deptcode
 from dept
-where deptname = 'accounts' OR deptname = 'personal'
+where deptname = 'accounts' and deptname = 'personal'
 );
 
 -- Q12. List the employees working for ‘accounts’ but not for ‘personal’ department
@@ -492,3 +492,231 @@ having count(*) > 3;
 select empname
 from emp,history
 where emp.empcode != history.empcode;
+
+-- Q33 List the employee with maximum number of promotions. Also list the number of promotions that he/she got.
+select emp.empname,emp.empcode, count(*) as NoPromotions
+	from emp,history
+	where emp.empcode = history.empcode
+	group by empcode 
+	order by NoPromotions desc
+	limit 1;
+
+
+-- Q34 . List the employees who got promoted in the year 1991. count(*) as NoOFpromotion
+select emp.empcode as CODES, emp.empname as Thenames 
+from emp
+join history on emp.empcode = history.empcode
+where history.changedate between '1991-01-01' and '1991-12-31'
+group by  emp.empcode,
+    emp.empname;
+
+-- Q35 List the department budget and the total salary drawn (by the employees of this department).
+select emp.empcode,emp.empname,deptName,budget,allow+basic-deduct as netSalary
+from dept,emp
+join salary on emp.empcode = salary.empcode;
+
+-- Q36  Display the employee names in full uppercase.
+select UPPER(empname) as Thenames from emp;
+
+-- Q37 . List all the employees drawing salary higher than the salary drawn by ‘Jain --
+select empname, (basic+allow-deduct) as netSal
+from emp
+join salary on emp.empcode = salary.empcode
+ where (salary.basic + salary.allow - salary.deduct) > (
+select  AVG(salary.basic + salary.allow - salary.deduct)
+from emp
+join salary on emp.empcode = salary.empcode
+where empname = 'Jain'
+);
+
+SELECT empname, (s.basic+s.allow-s.deduct) AS TotalSalWithdraw FROM emp e
+JOIN
+    salary s ON e.empcode = s.empcode
+WHERE (s.basic+s.allow-s.deduct) IN (
+	select (salary.basic+salary.allow-salary.deduct)
+	from emp
+	join salary on e.empcode = s.empcode
+	where empname = 'Jain'
+);
+
+
+-- Q38. List all the employees who have higher salary than all the employees who draw salary in the range of 11000 to 12000.
+select e.empcode,
+	e.empname
+from emp e join salary s on e.empcode = s.empcode 
+where  (s.basic + s.allow - s.deduct) >
+ALL(
+	select (s.basic + s.allow - s.deduct) as netSal
+	from salary s
+	where (s.basic + s.allow - s.deduct)  between 11000 and 12000
+    );
+    
+-- Q39  List all the employees who have greater than average pay. Display the result in the increasing order of the salary.-- 
+select empname, (s.basic + s.allow - s.deduct) AS NET_salary
+from emp e 
+join salary s on e.empcode = s.empcode 
+where (s.basic + s.allow - s.deduct) > ALL(
+	
+    select avg(s.basic + s.allow - s.deduct) 
+	from salary s
+
+);
+
+
+-- Q40  List the employees who draws highest salary
+select empname, (s.basic + s.allow - s.deduct) AS NET_salary
+from emp ,salary s
+where (s.basic + s.allow - s.deduct) =
+(
+select (s.basic + s.allow - s.deduct)
+from emp ,salary s
+order by (s.basic + s.allow - s.deduct)  desc
+limit 1
+);
+
+select empname, sum(s.basic + s.allow - s.deduct) AS NET_salary
+from emp e 
+join salary s on e.empcode = s.empcode
+where (s.basic + s.allow - s.deduct) =
+(
+select max(s.basic + s.allow - s.deduct)
+from salary s
+)
+group by e.empname;
+
+
+-- Q41 . List all the employees other than the employees who draw highest salary
+select empname, (s.basic + s.allow - s.deduct) AS NET_salary
+from emp ,salary s
+where (s.basic + s.allow - s.deduct) !=
+(
+select (s.basic + s.allow - s.deduct)
+from emp ,salary s
+order by (s.basic + s.allow - s.deduct)  desc
+limit 1
+)
+order by NET_salary desc;
+
+select empname, sum(s.basic + s.allow - s.deduct) AS NET_salary
+from emp e 
+join salary s on e.empcode = s.empcode
+where (s.basic + s.allow - s.deduct) !=
+(
+select max(s.basic + s.allow - s.deduct)
+from salary s
+)
+group by e.empname;
+
+
+-- Q42. List the employees who draw highest salary in each department 
+select e1.empname,sex, dept.deptName, (s.basic + s.allow - s.deduct) as Netsalary
+from emp e1 
+join dept on e1.deptcode = dept.deptcode
+join salary s on e1.empcode = s.empcode
+where  (s.basic + s.allow - s.deduct) =
+(
+	select max(s2.basic + s2.allow - s2.deduct)
+    from salary s2
+    join emp e2 on s2.empcode = e2.empcode
+    where e2.deptcode = e1.deptcode
+);
+
+-- Q43. List the employee(s) getting second highest salary
+select empname, (s.basic + s.allow - s.deduct) as secondHighestSalary
+from emp
+join salary s on emp.empcode = s.empcode
+where (s.basic + s.allow - s.deduct) =
+(
+	select max(s2.basic + s2.allow - s2.deduct)
+    from salary s2
+    where(s2.basic + s2.allow - s2.deduct)<
+    (
+    select max(s3.basic + s3.allow - s3.deduct)
+    from salary s3
+    )
+);
+
+
+--  Q44 List the employee(s) who are getting fifth highest salary
+select empname, (s.basic + s.allow - s.deduct) as secondHighestSalary
+from emp
+join salary s on emp.empcode = s.empcode
+where (s.basic + s.allow - s.deduct) =
+(
+	select max(s2.basic + s2.allow - s2.deduct)
+    from salary s2
+    where(s2.basic + s2.allow - s2.deduct)<
+    (
+		select max(s3.basic + s3.allow - s3.deduct)
+		from salary s3
+		where(s3.basic + s3.allow - s3.deduct)<
+		(
+			select max(s4.basic + s4.allow - s4.deduct)
+			from salary s4
+            where(s4.basic + s4.allow - s4.deduct)<
+			(
+				select max(s5.basic + s5.allow - s5.deduct)
+				from salary s5
+                where(s5.basic + s5.allow - s5.deduct)<
+				(
+					select max(s6.basic + s6.allow - s6.deduct)
+					from salary s6
+				)
+			)
+    )
+    )
+);
+
+
+-- Q45. List the department name of the female employee who draws the highest salary higher than any other female employee
+select deptName,sex,(s.basic + s.allow - s.deduct) as HighestSalaryInFemale
+from emp e join salary s on e.empcode = s.empcode
+join dept on dept.deptcode = e.deptcode
+where e.sex = 'F' and  
+(s.basic + s.allow - s.deduct)=
+(
+	select max(s2.basic + s2.allow - s2.deduct)
+	from salary s2
+    join emp e2 on e2.empcode = s2.empcode
+    where e2.sex ='F'
+);
+
+-- 46. List all male employees who draw salary greater than at least on female employee
+select empname,sex,(s.basic + s.allow - s.deduct) as HighestSalarythen
+from emp e join salary s on e.empcode = s.empcode
+where e.sex = 'M' and  
+(s.basic + s.allow - s.deduct)>
+(
+	select min(s2.basic + s2.allow - s2.deduct)
+	from salary s2
+    join emp e2 on e2.empcode = s2.empcode
+    where e2.sex ='F'
+);
+
+-- Q47  List the departments in which average salary of employees is more than average salary of the company
+select dept.deptName
+from emp e
+join salary s on e.empcode = s.empcode
+join dept on e.deptcode = dept.deptcode
+group by  dept.deptName
+having AVG(s.basic + s.allow - s.deduct) >
+(
+	select avg(s2.basic + s2.allow - s2.deduct)
+	from salary s2
+);
+
+-- Q48. List the employees drawing salary lesser than the average salary of employees working for ‘accounts’ department
+select e.empname,(s.basic + s.allow - s.deduct) AS salary
+from emp e
+join salary s on e.empcode = s.empcode
+join dept d on e.deptcode = d.deptcode
+where (s.basic + s.allow - s.deduct) < 
+(
+        select avg(s2.basic + s2.allow - s2.deduct)
+        from salary s2
+        join emp e2 on s2.empcode = e2.empcode
+        join dept d2 on e2.deptcode = d2.deptcode
+        where d2.deptName = 'Accounts'
+    );
+
+
